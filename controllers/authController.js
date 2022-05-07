@@ -8,14 +8,12 @@ export async function signin(req, res) {
     const { email, password } = req.body
     try {
         const user = await myWalletDb.collection("users").findOne({ email })
-        console.log(find)
 
         if (user && bcrypt.compareSync(password, user.password)) {
             const token = uuid()
     
-    
             await myWalletDb.collection("sessions").insertOne({
-                userId: find._id,
+                userId: user._id,
                 token
             })
     
@@ -61,7 +59,7 @@ export async function signup(req,res){
             {
                 name: user.name,
                 email: user.email,
-                password: user.password
+                password: bcrypt.hashSync(user.password, 10)
             }
         )
         res.sendStatus(200)
