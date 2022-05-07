@@ -1,25 +1,71 @@
 import { v4 as uuid } from 'uuid';
-import myWalletDb from '../db';
+import myWalletDb from '../myWalletDb.js';
 import bcrypt from 'bcrypt'
-
+import joi from 'joi'
+import chalk from 'chalk';
 
 export async function signin(req, res) {
     const { email, password } = req.body
+    try {
+        const user = await myWalletDb.collection("users").findOne({ email })
+        console.log(find)
 
-    const user = await myWalletDb.collection("users").findeOne({ email })
+        if (user && bcrypt.compareSync(password, user.password)) {
+            const token = uuid()
+    
+    
+            await myWalletDb.collection("sessions").insertOne({
+                userId: find._id,
+                token
+            })
+    
+            return res.send(token);
+        } else {
+            // usuário não encontrado (email ou senha incorretos)
+            return res.status(404).send("Usuário não encontrado")
+            
+        }   
+    } catch (error) {
+        res.status(400).send(error)
+    }
 
-    if (user && bcrypt.compareSync(password, user.password)) {
-        const token = uuid();
+}
 
+const emailPattern = /[a-z0-9.]+@[a-z0-9]+\.[a-z]/
+const passwordPattern = /[a-zAz]{3}[0-9]{2}/ 
+const userSchema = joi.object(
+    {
+        name: joi.string().min(1).required(), 
+        email: joi.string().pattern(emailPattern).required(),
+        password: joi.string().pattern(passwordPattern).required()
 
-        await db.collection("sessions").insertOne({
-            userId: user._id,
-            token
-        })
+    }
+)
 
-        res.send(token);
-    } else {
-        // usuário não encontrado (email ou senha incorretos)
-        res.status(404).send("Usuário não encontrado")
-    }   
+export async function signup(req,res){
+
+    /*
+    Validar body da requisição
+    Verificar se o usuário já possui cadastro 
+    Cadastrar usuário se o mesmo não possuir cadastro 
+    */
+
+    const user = req.body
+    const validation = userSchema.validate(user)
+    if(validation.error) return res.status(422).send(validation.error.details.map(detail => detail.message))
+
+    try {
+        const isUserSignedUp = await myWalletDb.collection("users").findOne({email: user.email})
+        if (isUserSignedUp) return res.sendStatus(409)
+        await myWalletDb.collection("users").insertOne(
+            {
+                name: user.name,
+                email: user.email,
+                password: user.password
+            }
+        )
+        res.sendStatus(200)
+    } catch (error) {
+        console.log("Usuário não foi inserido no banco.", chalk.red(error))
+    }
 }
