@@ -45,7 +45,7 @@ export async function signup(req,res){
     /*
     Validar body da requisição
     Verificar se o usuário já possui cadastro 
-    Cadastrar usuário se o mesmo não possuir cadastro 
+    Cadastrar usuário
     */
 
     const user = req.body
