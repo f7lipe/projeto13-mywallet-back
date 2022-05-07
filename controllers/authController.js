@@ -4,6 +4,17 @@ import bcrypt from 'bcrypt'
 import joi from 'joi'
 import chalk from 'chalk';
 
+const emailPattern = /[a-z0-9.]+@[a-z0-9]+\.[a-z]/
+const passwordPattern = /[a-zAz]{3}[0-9]{2}/ 
+const userSchema = joi.object(
+    {
+        name: joi.string().min(1).required(), 
+        email: joi.string().pattern(emailPattern).required(),
+        password: joi.string().pattern(passwordPattern).required()
+
+    }
+)
+
 export async function signin(req, res) {
     const { email, password } = req.body
     try {
@@ -28,17 +39,6 @@ export async function signin(req, res) {
     }
 
 }
-
-const emailPattern = /[a-z0-9.]+@[a-z0-9]+\.[a-z]/
-const passwordPattern = /[a-zAz]{3}[0-9]{2}/ 
-const userSchema = joi.object(
-    {
-        name: joi.string().min(1).required(), 
-        email: joi.string().pattern(emailPattern).required(),
-        password: joi.string().pattern(passwordPattern).required()
-
-    }
-)
 
 export async function signup(req,res){
 
