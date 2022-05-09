@@ -1,50 +1,28 @@
-import joi from "joi";
-import { ObjectId } from "mongodb";
 import myWalletDb from "../myWalletDb.js";
+import dayjs from "dayjs";
 
-const transactionSchema = joi.object(
-    {
-        type: joi.string().valid('input', 'output').required(),
-        description: joi.string().min(1).required(), 
-        date: joi.date().required(), 
-        amount: joi.number().required()
-    }
-)
+
 
 export async function newTransaction(req, res){
 
     /*
-    Validar o header da requisição 
-    Validar body da requisição
-    Verificar a existência do token do usuário no banco de dados
     Cadastrar nova transação 
     */
 
     const transaction = req.body
-    const { authorization } = req.headers
-    const token = authorization?.replace('Bearer ', '')
-    if(!token) return res.status(409).send("Token não foi enviado")
-    
-
-
-    const validation = transactionSchema.validate(transaction)
-    if (validation.error) return res.status(422).send(validation.error.details.map(detail => detail.message))
-
+    const user = res.locals.user
     try {
-        const isExistingToken = await myWalletDb.collection("sessions").findOne({token})
-        const {userId} = isExistingToken
-        if (isExistingToken){
-            await myWalletDb.collection("transactions").insertOne(
-                {
-                    type: transaction.type,
-                    description: transaction.description, 
-                    date: transaction.date, 
-                    amount: transaction.amount, 
-                    ownerID: userId.toString()
-                }
-            )
-            res.sendStatus(200)
-        } else return res.status(404).send("Token não encontrado")
+        const userId = user._id
+        await myWalletDb.collection("transactions").insertOne(
+            {
+                type: transaction.type,
+                description: transaction.description, 
+                date: dayjs().format("DD/MM"), 
+                amount: transaction.amount, 
+                ownerID: userId.toString()
+            }
+        )
+        res.sendStatus(200)
     } catch (error) {
         res.status(400).send(error)
     }
@@ -53,18 +31,15 @@ export async function newTransaction(req, res){
 export async function getTransactions(req, res){
 
     /*
-    Validar o header da requisição 
     Obter ID do usuário 
     Buscar transações do usuário
+    Enviar transações para o front
     */
 
-    const { authorization } = req.headers
-    const token = authorization?.replace('Bearer ', '')
-    if(!token) return res.status(409).send("Token não foi enviado")
-
+    const {user} = res.locals
 
     try {
-        const {userId} = await myWalletDb.collection("sessions").findOne({token})
+        const userId = user._id
         const transactions = await myWalletDb.collection("transactions").find({ownerID: userId.toString()}).toArray()
         return res.send(transactions)
     } catch (error) {
@@ -75,27 +50,24 @@ export async function getTransactions(req, res){
 export async function getBalance(req, res){
 
     /*
-    Validar o header da requisição 
     Obter transações do usuário
     Calcular saldo
     Retornar saldo para o usuário
     */
 
-    const { authorization } = req.headers
-    const token = authorization?.replace('Bearer ', '')
-    if(!token) return res.status(409).send("Token não foi enviado")
+    const {user} = res.locals
 
     try {
-        const {userId} = await myWalletDb.collection("sessions").findOne({token})
+        const userId = user._id
         const transactions = await myWalletDb.collection("transactions").find({ownerID: userId.toString()}).toArray()
         const amounts = []
-        let userAmount = 0 
+        let balance = 0 
         transactions.forEach(transaction => {
             if(transaction.type === 'input') amounts.push(Number(transaction.amount))
             else amounts.push(Number(transaction.amount) * -1)
         })
-        for (let amount of amounts) userAmount += amount
-        return res.send({balance: userAmount})
+        for (let amount of amounts) balance += amount
+        return res.send({balance: balance})
     } catch (error) {
         res.status(400).send(error)
     }

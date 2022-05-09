@@ -1,19 +1,9 @@
 import { v4 as uuid } from 'uuid';
 import myWalletDb from '../myWalletDb.js';
 import bcrypt from 'bcrypt'
-import joi from 'joi'
 import chalk from 'chalk';
+import authSchema from '../schemas/authSchema.js';
 
-const emailPattern = /[a-z0-9.]+@[a-z0-9]+\.[a-z]/
-const passwordPattern = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[0-9a-zA-Z]{8,}$/
-const userSchema = joi.object(
-    {
-        name: joi.string().min(1).required(), 
-        email: joi.string().pattern(emailPattern).required(),
-        password: joi.string().pattern(passwordPattern).required()
-
-    }
-)
 
 export async function signin(req, res) {
     const { email, password } = req.body
@@ -49,7 +39,7 @@ export async function signup(req,res){
     */
 
     const user = req.body
-    const validation = userSchema.validate(user)
+    const validation = authSchema.validate(user)
     if(validation.error) return res.status(422).send(validation.error.details.map(detail => detail.message))
 
     try {
