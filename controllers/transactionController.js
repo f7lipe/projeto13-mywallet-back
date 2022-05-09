@@ -25,6 +25,8 @@ export async function newTransaction(req, res){
     const token = authorization?.replace('Bearer ', '')
     if(!token) return res.status(409).send("Token não foi enviado")
     
+
+
     const validation = transactionSchema.validate(transaction)
     if (validation.error) return res.status(422).send(validation.error.details.map(detail => detail.message))
 
@@ -68,4 +70,34 @@ export async function getTransactions(req, res){
     } catch (error) {
         res.status(400).send(error)
     }
+}
+
+export async function getBalance(req, res){
+
+    /*
+    Validar o header da requisição 
+    Obter transações do usuário
+    Calcular saldo
+    Retornar saldo para o usuário
+    */
+
+    const { authorization } = req.headers
+    const token = authorization?.replace('Bearer ', '')
+    if(!token) return res.status(409).send("Token não foi enviado")
+
+    try {
+        const {userId} = await myWalletDb.collection("sessions").findOne({token})
+        const transactions = await myWalletDb.collection("transactions").find({ownerID: userId.toString()}).toArray()
+        const amounts = []
+        let userAmount = 0 
+        transactions.forEach(transaction => {
+            if(transaction.type === 'input') amounts.push(Number(transaction.amount))
+            else amounts.push(Number(transaction.amount) * -1)
+        })
+        for (let amount of amounts) userAmount += amount
+        return res.send({balance: userAmount})
+    } catch (error) {
+        res.status(400).send(error)
+    }
+
 }

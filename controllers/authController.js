@@ -5,7 +5,7 @@ import joi from 'joi'
 import chalk from 'chalk';
 
 const emailPattern = /[a-z0-9.]+@[a-z0-9]+\.[a-z]/
-const passwordPattern = /[a-zAz]{3}[0-9]{2}/ 
+const passwordPattern = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[0-9a-zA-Z]{8,}$/
 const userSchema = joi.object(
     {
         name: joi.string().min(1).required(), 
@@ -67,3 +67,4 @@ export async function signup(req,res){
         console.log("Usuário não foi inserido no banco.", chalk.red(error))
     }
 }
+
